@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>TikTok & YouTube Downloader</title>
+    <style>
+      body{font-family:system-ui,Arial;margin:24px}
+      input[type=text]{width:80%;padding:8px}
+      button{padding:8px 12px;margin:4px}
+      .result{margin-top:16px}
+      img{max-width:240px}
+    </style>
+  </head>
+  <body>
+    <h2>🎵 TikTok & YouTube Downloader</h2>
+
+    <h3>TikTok Video</h3>
+    <input id="tt-url" type="text" placeholder="https://vt.tiktok.com/..." />
+    <button id="tt-btn">Download</button>
+    <div id="tt-result" class="result"></div>
+
+    <hr>
+
+    <h3>YouTube Audio</h3>
+    <input id="yt-url" type="text" placeholder="https://youtu.be/..." />
+    <button id="yt-btn">Download Audio</button>
+    <div id="yt-result" class="result"></div>
+
+    <script>
+      // ========== TikTok ==========
+      document.getElementById('tt-btn').addEventListener('click', async () => {
+        const url = document.getElementById('tt-url').value.trim()
+        const r = document.getElementById('tt-result')
+        r.innerHTML = 'Loading...'
+        if (!url) return r.innerHTML = 'Masukkan URL dulu.'
+        try {
+          const res = await fetch('/api/tiktok?url=' + encodeURIComponent(url))
+          const data = await res.json()
+          if (!data.ok) return r.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>'
+          let html = ''
+          if (data.thumbnail) html += `<div><img src="${data.thumbnail}" alt="thumb"/></div>`
+          if (data.title) html += `<h3>${escapeHtml(data.title)}</h3>`
+          if (data.video) html += `<div><a href="${data.video}" download target="_blank">Download Video</a></div>`
+          if (Array.isArray(data.images) && data.images.length) {
+            html += '<h4>Images</h4>'
+            data.images.forEach(i => html += `<img src="${i}" style="max-width:180px"/>`)
+          }
+          r.innerHTML = html || 'Tidak ada hasil.'
+        } catch (e) {
+          r.innerHTML = 'Error: ' + e.message
+        }
+      })
+
+      // ========== YouTube ==========
+      document.getElementById('yt-btn').addEventListener('click', async () => {
+        const url = document.getElementById('yt-url').value.trim()
+        const r = document.getElementById('yt-result')
+        r.innerHTML = 'Loading...'
+        if (!url) return r.innerHTML = 'Masukkan URL dulu.'
+        try {
+          const res = await fetch('/api/youtube?url=' + encodeURIComponent(url))
+          const data = await res.json()
+          if (!data.ok) return r.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>'
+          let html = `<h3>${escapeHtml(data.title)}</h3>`
+          html += `<p>Durasi: ${data.duration} | Kualitas: ${data.quality} kbps</p>`
+          html += `<audio controls src="${data.audio}"></audio><br>`
+          html += `<a href="${data.audio}" download target="_blank">Download MP3</a>`
+          r.innerHTML = html
+        } catch (e) {
+          r.innerHTML = 'Error: ' + e.message
+        }
+      })
+
+      function escapeHtml(s){ return s ? s.replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c])) : '' }
+    </script>
+  </body>
+</html>
